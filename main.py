@@ -16,18 +16,18 @@ def home():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
-    # Логирование запроса
-    print("Получен запрос:", data)
-    # Обработка сообщения:
-    message = data.get("data", {}).get("MESSAGE", "").lower()
+    print("Получен запрос:", data)  # Логируем входящий запрос
 
-    # Здесь добавляем базовую логику: если сообщение содержит "стоимость" - передаем менеджеру
+    message = data.get("data", {}).get("MESSAGE", "").lower()
+    print("Обрабатываем сообщение:", message)
+
     if "стоимость" in message:
         response_text = "Я передам ваш запрос менеджеру, он скоро свяжется с вами."
+        print("Обнаружено ключевое слово 'стоимость'. Передаю менеджеру.")
     else:
-        # Если бот знает ответ, обращаемся к OpenAI для генерации ответа
         openai.api_key = OPENAI_API_KEY
         try:
+            print("Отправляю запрос в OpenAI...")
             completion = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
@@ -36,6 +36,7 @@ def webhook():
                 ]
             )
             response_text = completion["choices"][0]["message"]["content"].strip()
+            print("Ответ от OpenAI:", response_text)
         except Exception as e:
             response_text = "Извините, возникла ошибка при обработке вашего запроса."
             print("Ошибка OpenAI:", e)
@@ -47,11 +48,13 @@ def webhook():
         "MESSAGE": response_text
     }
     try:
+        print("Отправляю ответ в Bitrix24 по URL:", url)
         requests.post(url, json=payload)
     except Exception as e:
         print("Ошибка при отправке в Bitrix24:", e)
 
     return jsonify({"status": "ok"})
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
